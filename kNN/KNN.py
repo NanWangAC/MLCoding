@@ -1,6 +1,5 @@
 from numpy import *
 import operator
-import matplotlib
 import matplotlib.pyplot as plt
 
 # 创造简单的数据集
@@ -112,7 +111,7 @@ def classifyPerson():
     classifierResult = classify0((inArr-minVals)/ranges,normMat,datingLabels,3)
     print("you will propably like this person: ",resultList[classifierResult - 1])
 
-"""
+
 # 数据可视化
 # 建立一个画板
 fig = plt.figure()
@@ -142,4 +141,3 @@ print("===============================================")
 print(datingClassTest())
 print("===============================================")
 classifyPerson()
-"""
