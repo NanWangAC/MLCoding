@@ -102,6 +102,7 @@ p0V,p1V,pAb = trainNB0(trainMat,listClasses)
 # 朴素贝叶斯分类函数：输入要分类的向量以及训练函数trainNB0()返回的三个参数
 def classifyNB(vec2Classify, p0Vec, p1Vec, pClass1):
     # 根据朴素贝叶斯分类函数分别计算待分类文档属于类1和类0的概率
+    # 通过log函数将乘法转换为加法
     p1 = sum(vec2Classify * p1Vec) + log(pClass1)
     p0 = sum(vec2Classify * p0Vec) + log(1.0 - pClass1)
     if p1 > p0:
