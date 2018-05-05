@@ -175,7 +175,7 @@ def multiTest():
     # 打印出测试10次预测错误率平均值
     print("after %d iterations the average error rate is: %f" % (numTests, errorSum/float(numTests)))
 
-# # 测试loadDataSet()/sigmoid(inx)/gradAscent(dataMatIn,classLabels)
+# 测试loadDataSet()/sigmoid(inx)/gradAscent(dataMatIn,classLabels)
 # dataArr,labelMat = loadDataSet()
 # weight = gradAscent(dataArr,labelMat)
 # print(weight)
