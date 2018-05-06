@@ -1,21 +1,31 @@
 from numpy import *
 from time import sleep
 
+# 加载数据
 def loadDataSet(fileName):
+    # 创建初级与标签列表
     dataMat = []; labelMat = []
+    # 打开数据集
     fr = open(fileName)
+    # 遍历文本的每一行
     for line in fr.readlines():
+        # 对当前行除去首尾空格之后按空格进行分离
         lineArr = line.strip().split('\t')
+        # 将每一行的两个特征x1，x2组成列表并添加到数据集列表中
         dataMat.append([float(lineArr[0]), float(lineArr[1])])
+        # 将当前行标签添加到标签列表
         labelMat.append(float(lineArr[2]))
+    # 返回数据列表，标签列表
     return dataMat,labelMat
 
+# 在样本集中采取随机选择的方法选取第二个不等于第一个alphai的优化向量alphaj
 def selectJrand(i,m):
-    j=i #we want to select any J not equal to i
+    j=i
     while (j==i):
         j = int(random.uniform(0,m))
     return j
 
+# 约束范围L<=alphaj<=H内的更新后的alphaj值
 def clipAlpha(aj,H,L):
     if aj > H: 
         aj = H
@@ -23,22 +33,45 @@ def clipAlpha(aj,H,L):
         aj = L
     return aj
 
+'''
+@dataMat    ：数据列表
+@classLabels：标签列表
+@C          ：权衡因子（增加松弛因子而在目标优化函数中引入了惩罚项）
+@toler      ：容错率
+@maxIter    ：最大迭代次数
+'''
 def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
-    dataMatrix = mat(dataMatIn); labelMat = mat(classLabels).transpose()
-    b = 0; m,n = shape(dataMatrix)
+    # 将列表形式转为矩阵或向量形式
+    dataMatrix = mat(dataMatIn)
+    labelMat = mat(classLabels).transpose()
+    # 初始化b=0，获取矩阵行列
+    b = 0
+    m,n = shape(dataMatrix)
+    # 新建一个m行1列的向量
     alphas = mat(zeros((m,1)))
+    # 迭代次数为0
     iter = 0
     while (iter < maxIter):
+        # 改变的alpha对数
         alphaPairsChanged = 0
+        # 遍历样本集中样本
         for i in range(m):
+            # 计算支持向量机算法的预测值
             fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b
+            # 计算预测值与实际值的误差
             Ei = fXi - float(labelMat[i])#if checks if an example violates KKT conditions
             if ((labelMat[i]*Ei < -toler) and (alphas[i] < C)) or ((labelMat[i]*Ei > toler) and (alphas[i] > 0)):
+                # 随机选择第二个变量alphaj
                 j = selectJrand(i,m)
+                # 计算第二个变量对应数据的预测值
                 fXj = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[j,:].T)) + b
+                # 计算与测试与实际值的差值
                 Ej = fXj - float(labelMat[j])
-                alphaIold = alphas[i].copy(); alphaJold = alphas[j].copy();
+                # 记录alphai和alphaj的原始值，便于后续的比较
+                alphaIold = alphas[i].copy()
+                alphaJold = alphas[j].copy()
                 if (labelMat[i] != labelMat[j]):
+                    # 求出相应的上下边界
                     L = max(0, alphas[j] - alphas[i])
                     H = min(C, C + alphas[j] - alphas[i])
                 else:
