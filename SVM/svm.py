@@ -18,9 +18,14 @@ def loadDataSet(fileName):
     # 返回数据列表，标签列表
     return dataMat,labelMat
 
-# 在样本集中采取随机选择的方法选取第二个不等于第一个alphai的优化向量alphaj
+
+'''
+@i  :第一个alpha的下标
+@m  :alpha个数
+'''
 def selectJrand(i,m):
     j=i
+    # 随机选择alphaj，主要i!=j即可
     while (j==i):
         j = int(random.uniform(0,m))
     return j
@@ -59,7 +64,8 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
             # 计算支持向量机算法的预测值
             fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b
             # 计算预测值与实际值的误差
-            Ei = fXi - float(labelMat[i])#if checks if an example violates KKT conditions
+            Ei = fXi - float(labelMat[i])
+            # 如果不满足KKT条件
             if ((labelMat[i]*Ei < -toler) and (alphas[i] < C)) or ((labelMat[i]*Ei > toler) and (alphas[i] > 0)):
                 # 随机选择第二个变量alphaj
                 j = selectJrand(i,m)
@@ -70,6 +76,7 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
                 # 记录alphai和alphaj的原始值，便于后续的比较
                 alphaIold = alphas[i].copy()
                 alphaJold = alphas[j].copy()
+                # 如果两个alpha对应样本的标签不相同
                 if (labelMat[i] != labelMat[j]):
                     # 求出相应的上下边界
                     L = max(0, alphas[j] - alphas[i])
@@ -86,36 +93,42 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
                     continue
                 alphas[j] -= labelMat[j]*(Ei - Ej)/eta
                 alphas[j] = clipAlpha(alphas[j],H,L)
+                # 如果改变后的alphaj值变化不大，跳出本次循环
                 if (abs(alphas[j] - alphaJold) < 0.00001):
                     print("j not moving enough")
                     continue
-                alphas[i] += labelMat[j]*labelMat[i]*(alphaJold - alphas[j])#update i by the same amount as j
-                                                                        #the update is in the oppostie direction
+                # 否则，计算相应的alphai值
+                alphas[i] += labelMat[j]*labelMat[i]*(alphaJold - alphas[j])
+                # 再分别计算两个alpha情况下对于的b值
                 b1 = b - Ei- labelMat[i]*(alphas[i]-alphaIold)*dataMatrix[i,:]*dataMatrix[i,:].T - labelMat[j]*(alphas[j]-alphaJold)*dataMatrix[i,:]*dataMatrix[j,:].T
                 b2 = b - Ej- labelMat[i]*(alphas[i]-alphaIold)*dataMatrix[i,:]*dataMatrix[j,:].T - labelMat[j]*(alphas[j]-alphaJold)*dataMatrix[j,:]*dataMatrix[j,:].T
+                # alpha满足约束条件则赋值
                 if (0 < alphas[i]) and (C > alphas[i]): b = b1
                 elif (0 < alphas[j]) and (C > alphas[j]): b = b2
                 else: b = (b1 + b2)/2.0
+                # 已改变一对alpha的值
                 alphaPairsChanged += 1
                 print ("iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
+        # 最后判断是否有改变的alpha对，没有就进行下一次迭代
         if (alphaPairsChanged == 0): iter += 1
         else: iter = 0
         print( "iteration number: %d" % iter)
     return b,alphas
 
-def kernelTrans(X, A, kTup): #calc the kernel or transform data to a higher dimensional space
+# 核转换函数
+def kernelTrans(X, A, kTup):
     m,n = shape(X)
     K = mat(zeros((m,1)))
-    if kTup[0]=='lin': K = X * A.T   #linear kernel
+    if kTup[0]=='lin': K = X * A.T
     elif kTup[0]=='rbf':
         for j in range(m):
             deltaRow = X[j,:] - A
             K[j] = deltaRow*deltaRow.T
-        K = exp(K/(-1*kTup[1]**2)) #divide in NumPy is element-wise not matrix like Matlab
-    else: raise NameError('Houston We Have a Problem -- \
-    That Kernel is not recognized')
+        K = exp(K/(-1*kTup[1]**2))
+    else: raise NameError('Houston We Have a Problem -- That Kernel is not recognized')
     return K
 
+#新建一个类的数据结构，保存当前重要的值
 class optStruct:
     def __init__(self,dataMatIn, classLabels, C, toler, kTup):  # Initialize the structure with the parameters 
         self.X = dataMatIn
@@ -129,38 +142,49 @@ class optStruct:
         self.K = mat(zeros((self.m,self.m)))
         for i in range(self.m):
             self.K[:,i] = kernelTrans(self.X, self.X[i,:], kTup)
-        
+
+# 封装计算误差的函数，方便多次调用
 def calcEk(oS, k):
     fXk = float(multiply(oS.alphas,oS.labelMat).T*oS.K[:,k] + oS.b)
     Ek = fXk - float(oS.labelMat[k])
     return Ek
-        
-def selectJ(i, oS, Ei):         #this is the second choice -heurstic, and calcs Ej
+
+# 修改选择第二个变量alphaj的方法
+def selectJ(i, oS, Ei):
     maxK = -1; maxDeltaE = 0; Ej = 0
-    oS.eCache[i] = [1,Ei]  #set valid #choose the alpha that gives the maximum delta E
+    # 将误差矩阵每一行第一列置1，以此确定出误差不为0的样本
+    oS.eCache[i] = [1,Ei]
+    # 获取缓存中Ei不为0的样本对应的alpha列表
     validEcacheList = nonzero(oS.eCache[:,0].A)[0]
+    # 在误差不为0的列表中找出使abs(Ei-Ej)最大的alphaj
     if (len(validEcacheList)) > 1:
-        for k in validEcacheList:   #loop through valid Ecache values and find the one that maximizes delta E
-            if k == i: continue #don't calc for i, waste of time
+        for k in validEcacheList:
+            if k == i: continue
             Ek = calcEk(oS, k)
             deltaE = abs(Ei - Ek)
             if (deltaE > maxDeltaE):
                 maxK = k; maxDeltaE = deltaE; Ej = Ek
         return maxK, Ej
-    else:   #in this case (first time around) we don't have any valid eCache values
+    # 否则，就从样本集中随机选取alphaj
+    else:
         j = selectJrand(i, oS.m)
         Ej = calcEk(oS, j)
     return j, Ej
 
-def updateEk(oS, k):#after any alpha has changed update the new value in the cache
+# 更新误差矩阵
+def updateEk(oS, k):
     Ek = calcEk(oS, k)
     oS.eCache[k] = [1,Ek]
-        
+
+# 内循环寻找alphaj
 def innerL(i, oS):
+    # 计算误差
     Ei = calcEk(oS, i)
+    # 违背kkt条件
     if ((oS.labelMat[i]*Ei < -oS.tol) and (oS.alphas[i] < oS.C)) or ((oS.labelMat[i]*Ei > oS.tol) and (oS.alphas[i] > 0)):
-        j,Ej = selectJ(i, oS, Ei) #this has been changed from selectJrand
-        alphaIold = oS.alphas[i].copy(); alphaJold = oS.alphas[j].copy();
+        j,Ej = selectJ(i, oS, Ei)
+        alphaIold = oS.alphas[i].copy(); alphaJold = oS.alphas[j].copy()
+        # 计算上下界
         if (oS.labelMat[i] != oS.labelMat[j]):
             L = max(0, oS.alphas[j] - oS.alphas[i])
             H = min(oS.C, oS.C + oS.alphas[j] - oS.alphas[i])
@@ -170,30 +194,38 @@ def innerL(i, oS):
         if L==H:
             print ("L==H")
             return 0
-        eta = 2.0 * oS.K[i,j] - oS.K[i,i] - oS.K[j,j] #changed for kernel
+        eta = 2.0 * oS.K[i,j] - oS.K[i,i] - oS.K[j,j]
         if eta >= 0:
             rint("eta>=0")
             return 0
+        # 计算alphaj
         oS.alphas[j] -= oS.labelMat[j]*(Ei - Ej)/eta
         oS.alphas[j] = clipAlpha(oS.alphas[j],H,L)
-        updateEk(oS, j) #added this for the Ecache
+        updateEk(oS, j)
         if (abs(oS.alphas[j] - alphaJold) < 0.00001):
             print("j not moving enough")
             return 0
-        oS.alphas[i] += oS.labelMat[j]*oS.labelMat[i]*(alphaJold - oS.alphas[j])#update i by the same amount as j
-        updateEk(oS, i) #added this for the Ecache                    #the update is in the oppostie direction
+        # 计算alphai
+        oS.alphas[i] += oS.labelMat[j]*oS.labelMat[i]*(alphaJold - oS.alphas[j])
+        updateEk(oS, i)
+        # 在这两个alpha值情况下，计算对应的b值。非线性可分情况，将所有内积项替换为核函数K[i,j]
         b1 = oS.b - Ei- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i,j]
         b2 = oS.b - Ej- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,j]- oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[j,j]
         if (0 < oS.alphas[i]) and (oS.C > oS.alphas[i]): oS.b = b1
         elif (0 < oS.alphas[j]) and (oS.C > oS.alphas[j]): oS.b = b2
         else: oS.b = (b1 + b2)/2.0
+        # 如果有alpha对更新
         return 1
+    # 否则返回0
     else: return 0
 
-def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #full Platt SMO
+#SMO外循环代码
+def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):
+    # 保存关键数据
     oS = optStruct(mat(dataMatIn),mat(classLabels).transpose(),C,toler, kTup)
     iter = 0
     entireSet = True; alphaPairsChanged = 0
+    # 选取第一个变量alpha的三种情况，从间隔边界上选取或者整个数据集
     while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):
         alphaPairsChanged = 0
         if entireSet:   #go over all
@@ -201,17 +233,20 @@ def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #full Pl
                 alphaPairsChanged += innerL(i,oS)
                 print ("fullSet, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
             iter += 1
-        else:#go over non-bound (railed) alphas
+        # 统计alphas向量中满足0<alpha<C的alpha列表
+        else:
             nonBoundIs = nonzero((oS.alphas.A > 0) * (oS.alphas.A < C))[0]
             for i in nonBoundIs:
                 alphaPairsChanged += innerL(i,oS)
                 print( "non-bound, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
             iter += 1
-        if entireSet: entireSet = False #toggle entire set loop
+        if entireSet: entireSet = False
+        # 如果本次循环没有改变的alpha对，将entireSet置为true，下个循环仍遍历数据集
         elif (alphaPairsChanged == 0): entireSet = True  
         print ("iteration number: %d" % iter)
     return oS.b,oS.alphas
 
+# 求出了alpha值和对应的b值，就可以求出对应的w值，以及分类函数值
 def calcWs(alphas,dataArr,classLabels):
     X = mat(dataArr); labelMat = mat(classLabels).transpose()
     m,n = shape(X)
@@ -222,10 +257,10 @@ def calcWs(alphas,dataArr,classLabels):
 
 def testRbf(k1=1.3):
     dataArr,labelArr = loadDataSet('testSetRBF.txt')
-    b,alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, ('rbf', k1)) #C=200 important
+    b,alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, ('rbf', k1))
     datMat=mat(dataArr); labelMat = mat(labelArr).transpose()
     svInd=nonzero(alphas.A>0)[0]
-    sVs=datMat[svInd] #get matrix of only support vectors
+    sVs=datMat[svInd]
     labelSV = labelMat[svInd];
     print ("there are %d Support Vectors" % shape(sVs)[0])
     m,n = shape(datMat)
@@ -257,12 +292,12 @@ def img2vector(filename):
 def loadImages(dirName):
     from os import listdir
     hwLabels = []
-    trainingFileList = listdir(dirName)           #load the training set
+    trainingFileList = listdir(dirName)
     m = len(trainingFileList)
     trainingMat = zeros((m,1024))
     for i in range(m):
         fileNameStr = trainingFileList[i]
-        fileStr = fileNameStr.split('.')[0]     #take off .txt
+        fileStr = fileNameStr.split('.')[0]
         classNumStr = int(fileStr.split('_')[0])
         if classNumStr == 9: hwLabels.append(-1)
         else: hwLabels.append(1)
@@ -297,7 +332,7 @@ def testDigits(kTup=('rbf', 10)):
 
 
 class optStructK:
-    def __init__(self,dataMatIn, classLabels, C, toler):  # Initialize the structure with the parameters 
+    def __init__(self,dataMatIn, classLabels, C, toler):
         self.X = dataMatIn
         self.labelMat = classLabels
         self.C = C
@@ -305,38 +340,38 @@ class optStructK:
         self.m = shape(dataMatIn)[0]
         self.alphas = mat(zeros((self.m,1)))
         self.b = 0
-        self.eCache = mat(zeros((self.m,2))) #first column is valid flag
+        self.eCache = mat(zeros((self.m,2)))
         
 def calcEkK(oS, k):
     fXk = float(multiply(oS.alphas,oS.labelMat).T*(oS.X*oS.X[k,:].T)) + oS.b
     Ek = fXk - float(oS.labelMat[k])
     return Ek
         
-def selectJK(i, oS, Ei):         #this is the second choice -heurstic, and calcs Ej
+def selectJK(i, oS, Ei):
     maxK = -1; maxDeltaE = 0; Ej = 0
-    oS.eCache[i] = [1,Ei]  #set valid #choose the alpha that gives the maximum delta E
+    oS.eCache[i] = [1,Ei]
     validEcacheList = nonzero(oS.eCache[:,0].A)[0]
     if (len(validEcacheList)) > 1:
-        for k in validEcacheList:   #loop through valid Ecache values and find the one that maximizes delta E
-            if k == i: continue #don't calc for i, waste of time
+        for k in validEcacheList:
+            if k == i: continue
             Ek = calcEk(oS, k)
             deltaE = abs(Ei - Ek)
             if (deltaE > maxDeltaE):
                 maxK = k; maxDeltaE = deltaE; Ej = Ek
         return maxK, Ej
-    else:   #in this case (first time around) we don't have any valid eCache values
+    else:
         j = selectJrand(i, oS.m)
         Ej = calcEk(oS, j)
     return j, Ej
 
-def updateEkK(oS, k):#after any alpha has changed update the new value in the cache
+def updateEkK(oS, k):
     Ek = calcEk(oS, k)
     oS.eCache[k] = [1,Ek]
         
 def innerLK(i, oS):
     Ei = calcEk(oS, i)
     if ((oS.labelMat[i]*Ei < -oS.tol) and (oS.alphas[i] < oS.C)) or ((oS.labelMat[i]*Ei > oS.tol) and (oS.alphas[i] > 0)):
-        j,Ej = selectJ(i, oS, Ei) #this has been changed from selectJrand
+        j,Ej = selectJ(i, oS, Ei)
         alphaIold = oS.alphas[i].copy(); alphaJold = oS.alphas[j].copy();
         if (oS.labelMat[i] != oS.labelMat[j]):
             L = max(0, oS.alphas[j] - oS.alphas[i])
@@ -353,12 +388,12 @@ def innerLK(i, oS):
             return 0
         oS.alphas[j] -= oS.labelMat[j]*(Ei - Ej)/eta
         oS.alphas[j] = clipAlpha(oS.alphas[j],H,L)
-        updateEk(oS, j) #added this for the Ecache
+        updateEk(oS, j)
         if (abs(oS.alphas[j] - alphaJold) < 0.00001):
             print("j not moving enough")
             return 0
         oS.alphas[i] += oS.labelMat[j]*oS.labelMat[i]*(alphaJold - oS.alphas[j])
-        updateEk(oS, i) #added this for the Ecache                    #the update is in the oppostie direction
+        updateEk(oS, i)
         b1 = oS.b - Ei- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i,:]*oS.X[i,:].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[i,:]*oS.X[j,:].T
         b2 = oS.b - Ej- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i,:]*oS.X[j,:].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[j,:]*oS.X[j,:].T
         if (0 < oS.alphas[i]) and (oS.C > oS.alphas[i]): oS.b = b1
@@ -367,24 +402,36 @@ def innerLK(i, oS):
         return 1
     else: return 0
 
-def smoPK(dataMatIn, classLabels, C, toler, maxIter):    #full Platt SMO
+def smoPK(dataMatIn, classLabels, C, toler, maxIter):
     oS = optStruct(mat(dataMatIn),mat(classLabels).transpose(),C,toler)
     iter = 0
     entireSet = True; alphaPairsChanged = 0
     while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):
         alphaPairsChanged = 0
-        if entireSet:   #go over all
+        if entireSet:
             for i in range(oS.m):        
                 alphaPairsChanged += innerL(i,oS)
                 print ("fullSet, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
             iter += 1
-        else:#go over non-bound (railed) alphas
+        else:
             nonBoundIs = nonzero((oS.alphas.A > 0) * (oS.alphas.A < C))[0]
             for i in nonBoundIs:
                 alphaPairsChanged += innerL(i,oS)
                 print ("non-bound, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
             iter += 1
-        if entireSet: entireSet = False #toggle entire set loop
+        if entireSet: entireSet = False
         elif (alphaPairsChanged == 0): entireSet = True  
         print ("iteration number: %d" % iter)
     return oS.b,oS.alphas
+
+# 测试
+dataArr, labelArr = loadDataSet('testSet.txt')
+b, alphas = smoSimple(dataArr, labelArr, 0.6, 0.001, 40)
+for i in range(100):
+    if alphas[i] > 0.0:
+        print(dataArr[i], labelArr[i])
+ws = calcWs(alphas,dataArr,labelArr)
+print(ws)
+print(labelArr[0])
+testRbf()
+testDigits(('rbf', 20))
