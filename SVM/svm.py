@@ -424,14 +424,3 @@ def smoPK(dataMatIn, classLabels, C, toler, maxIter):
         print ("iteration number: %d" % iter)
     return oS.b,oS.alphas
 
-# 测试
-dataArr, labelArr = loadDataSet('testSet.txt')
-b, alphas = smoSimple(dataArr, labelArr, 0.6, 0.001, 40)
-for i in range(100):
-    if alphas[i] > 0.0:
-        print(dataArr[i], labelArr[i])
-ws = calcWs(alphas,dataArr,labelArr)
-print(ws)
-print(labelArr[0])
-testRbf()
-testDigits(('rbf', 20))

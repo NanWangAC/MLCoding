@@ -211,6 +211,3 @@ def grabTree(filename):
     fr = open(filename,'rb')
     return pickle.load(fr)
 
-# 测试函数
-storeTree(myTree,"classifierStorage.txt")
-print("加载模型：",grabTree("classifierStorage.txt"))

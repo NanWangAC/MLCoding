@@ -112,32 +112,4 @@ def classifyPerson():
     print("you will propably like this person: ",resultList[classifierResult - 1])
 
 
-# 数据可视化
-# 建立一个画板
-fig = plt.figure()
-# 添加子图，将画布分割成1行1列，图像画在从左到右从上到下的第1块
-ax = fig.add_subplot(111)
-datingDataMat,datingLabels = file2matrux('datingTestSet2.txt')
-# 绘制散点图,横坐标取矩阵第2列所有数据，纵坐标取矩阵第三列数据,绘制色彩不同，尺寸不同的点
-ax.scatter(datingDataMat[:,0], datingDataMat[:,1],15.0*array(datingLabels),15.0*array(datingLabels))
-# ax.scatter(datingDataMat[:,1], datingDataMat[:,2],15.0*array(datingLabels),15.0*array(datingLabels))
-# 显示
-plt.show()
 
-
-group,lables = createDataSet()
-print(group,lables)
-print("===============================================")
-print(classify0([0,0],group,lables,3))
-print("===============================================")
-print(datingDataMat)
-print(datingLabels[0:20])
-print("===============================================")
-normMat,ranges,minVals = autoNorm(datingDataMat)
-print(normMat)
-print(ranges)
-print(minVals)
-print("===============================================")
-print(datingClassTest())
-print("===============================================")
-classifyPerson()

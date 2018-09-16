@@ -171,17 +171,3 @@ def plotROC(predStrengths, classLabels):
     plt.show()
     print("the Area Under the Curve is: ",ySum*xStep)
 
-# 测试
-# datmat, classLabels = loadSimpData()
-# D = mat(ones((5,1))/5)
-# print(buildStump(datmat, classLabels, D))
-# print(adaBoostTrainDS(datmat, classLabels, 9))
-# datmatlassifierArr,_ = adaBoostTrainDS(datmat, classLabels, 30)
-# print(adaClassify([0,0], classifierArr))
-datArr, labelArr = loadDataSet('horseColicTraining2.txt')
-classifierArray, aggClassEst = adaBoostTrainDS(datArr, labelArr, 10)
-# testArr, testLableArr = loadDataSet('horseColicTest2.txt')
-# prediction10 = adaClassify(testArr, classifierArray)
-# errArr = mat(ones((67,1)))
-# print(errArr[prediction10 != mat(testLableArr).T].sum())
-plotROC(aggClassEst.T, labelArr)

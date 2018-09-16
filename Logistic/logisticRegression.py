@@ -174,19 +174,3 @@ def multiTest():
         errorSum += colicTest()
     # 打印出测试10次预测错误率平均值
     print("after %d iterations the average error rate is: %f" % (numTests, errorSum/float(numTests)))
-
-# 测试loadDataSet()/sigmoid(inx)/gradAscent(dataMatIn,classLabels)
-# dataArr,labelMat = loadDataSet()
-# weight = gradAscent(dataArr,labelMat)
-# print(weight)
-# # 测试画线函数
-# # getA()函数与mat()函数的功能相反，是将一个numpy矩阵转换为数组
-# plotBestFit(weight.getA())
-# # 测试随机梯度上升
-# weight = stocGradAscent0(array(dataArr),labelMat)
-# plotBestFit(weight)
-# # 测试改进的随机梯度上升
-# weight = stocGradAscent1(array(dataArr),labelMat)
-# plotBestFit(weight)
-# 进行分类
-multiTest()

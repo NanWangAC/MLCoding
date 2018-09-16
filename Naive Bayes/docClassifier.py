@@ -134,4 +134,3 @@ def bagOfWords2VecMN(vocabList, inputSet):
             returnVec[vocabList.index(word)] += 1
     return returnVec
 
-print(testingNB())
