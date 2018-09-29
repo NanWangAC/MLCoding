@@ -143,5 +143,3 @@ def clusterClubs(numClust=5):
     ax1.scatter(myCentroids[:,0].flatten().A[0], myCentroids[:,1].flatten().A[0], marker='+', s=300)
     plt.show()
 
-# 测试
-clusterClubs(5)
