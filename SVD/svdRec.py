@@ -109,7 +109,7 @@ def recommend(dataMat, user, N=3, simMeas=cosSim, estMethod=standEst):
         estimatedScore = estMethod(dataMat, user, simMeas, item)
         itemScores.append((item, estimatedScore))
     # 根据评级逆序排列（从大到小），然后返回N个评级最高的物品
-    return sorted(itemScores, key=lambda jj: jj[1], reverse=True)[:N]
+    return sorted(itemScores, key=lambda itemScores: itemScores[1], reverse=True)[:N]
 
 # 打印矩阵
 # [数据矩阵，阈值]
@@ -142,3 +142,4 @@ def imgCompress(numSV=3, thresh=0.8):
     reconMat = U[:,:numSV]*SigRecon*VT[:numSV,:]
     print("****reconstructed matrix using {numSV} singular values******".format(numSV=numSV))
     printMat(reconMat, thresh)
+
