@@ -118,6 +118,7 @@ def printMat(inMat, thresh=0.8):
         for k in range(32):
             # 由于矩阵中包含浮点数，所以采用阈值区分浅色和灰色
             if float(inMat[i,k]) > thresh:
+                # 对{end}设置空白参数避免换行
                 print (1,end='')
             else:
                 print (0,end='')
@@ -141,5 +142,3 @@ def imgCompress(numSV=3, thresh=0.8):
     reconMat = U[:,:numSV]*SigRecon*VT[:numSV,:]
     print("****reconstructed matrix using {numSV} singular values******".format(numSV=numSV))
     printMat(reconMat, thresh)
-
-imgCompress(2)
