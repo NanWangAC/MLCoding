@@ -77,16 +77,22 @@ def svdEst(dataMat, user, simMeas, item):
     ratSimTotal = 0.0
     # 在SVD分解之后，我们只利用包含了90%能量值的奇异值，这些奇异值会以NumPy数组的形式得以保存
     U,Sigma,VT = la.svd(dataMat)
-    # 如果要进行矩阵运算，就必须要用这些奇异值构建出一个对角矩阵，此处采用包含了90%的能量4个主要特征
+    # 如果要进行矩阵运算，就必须要用这些奇异值构建出一个对角矩阵，此处采用4个主要特征
     Sig4 = mat(eye(4)*Sigma[:4])
     print("sigma",Sigma)
     print("sig",Sig4)
     # 利用U矩阵将物品转换到低维空间中，构建转换后的物品(物品+4个主要的特征)
+    # D.T*D*v = D.T*U*∑
     xformedItems = dataMat.T * U[:,:4] * Sig4.I
     for j in range(n):
         userRating = dataMat[user,j]
         if userRating == 0 or j==item:
             continue
+        '''
+        假设原数据矩阵的shape是（m,n)，则u[:,4]的shape是（m，4），sig4的shape是（4，4），逆也是（4，4），
+        想成后得到的x_formed_items的shape是（n，4），原来的n变成了行，
+        我们求相似度传的是一个个的列向量，所以转置。
+        '''
         similarity = simMeas(xformedItems[item,:].T, xformedItems[j,:].T)
         print('the {item} and {j} similarity is: {similarity}'.format(item=item, j=j, similarity=similarity))
         simTotal += similarity
