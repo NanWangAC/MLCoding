@@ -42,12 +42,14 @@ def createTree(dataSet, minSup=1):
     for tranSet, count in dataSet.items():
         localData = {}
         for item in tranSet:
+            # 判断该项是否在频繁集项中
             if item in frequentItemSet:
                 # 第二次遍历中只对频繁项集进行操作
                 localData[item] = headerTable[item][0]
         if len(localData) > 0:
             # 根据全局频率对每个事务中的元素从大到小进行排列
             orderedItems = [v[0] for v in sorted(localData.items(), key=lambda p: p[1], reverse=True)]
+            print("orderedItems ",orderedItems )
             # 使用排序后的频率项集对树进行填充（也就是使其生长，即growth）
             updateTree(orderedItems, retTree, headerTable, count)
     return retTree, headerTable
@@ -130,10 +132,3 @@ def createInitSet(dataSet):
         retDict[frozenset(trans)] = 1
     return retDict
 
-simpleData = loadSimpDat()
-initSet = createInitSet(simpleData)
-myFPTree, myHeaderTab = createTree(initSet, 3)
-print(myHeaderTab)
-
-freqItems = []
-mineTree(myHeaderTab, 3, set([]), freqItems)
